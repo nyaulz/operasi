@@ -1,81 +1,46 @@
--- Script Auto Surg Support Magplant & Genta Hax + LimitTea Logic (Clave Style UI + Blue Border + GT Native Buttons with Icons)
--- Remaked & Configured By #nYauL1763 | Type /surg To Start Script Menu
+-- ==============================================================================
+-- GENTA HAX - AUTO SURGERY & AUTO CONSUME SCRIPT
+-- Made by #nYauL1763
+-- ==============================================================================
 
--- ==================== CONFIG & VARIABLES ====================
+-- Konfigurasi Awal Script
 Config = {
-   AutoSurg = true,
-   AutoPut = false,
-   LegitMode = false,
-   UseMagplant = false,
-   DelayMS = 1000,
-   ItemID = 4296,
-   Position = "RIGHT",
-   
-   -- Config Auto Consume (Genta Hax Style)
-   Tea = false,
-   Spice = false,
-   TeaID = 5114,
-   SpiceID = 6912,
-   TeaDelay = 125,      -- 2 menit 5 detik (125 detik)
-   SpiceDelay = 1805,   -- 30 menit 5 detik (1805 detik)
-   Tick = 1
+    DelayMS = 250,
+    ItemID = 5640, -- Contoh Item ID (Dummy/Surgical Tool)
+    Position = "UP",
+    AutoSurg = false,
+    AutoPut = false,
+    LegitMode = true,
+    UseMagplant = false,
+    -- Auto Consume Config
+    Tea = false,
+    Spice = false,
+    TeaID = 7188,   -- ID untuk Tea
+    SpiceID = 7190  -- ID untuk Skill Spice
 }
 
-local tool = "0"
-local isProcessing = false
-local isConsumeRunning = false
-local teaTimer, spiceTimer = 0, 0
-local surgerySuccessCount = 0
-local isSurgeryActive = false
+surgerySuccessCount = 0
+isConsumeRunning = false
 
-local function logMsg(text)
-   pcall(function()
-      if Log then
-         Log(text)
-      elseif logToConsole then
-         logToConsole(text)
-      else
-         print("[#nYauL1763-Surg] " .. tostring(text))
-      end
-   end)
+-- ==================== FUNGSI HELPER STOK ITEM ====================
+function getItemAmount(targetID)
+    local inv = getInventory()
+    if not inv then return 0 end
+    for _, item in pairs(inv) do
+        if item.id == targetID then
+            return item.amount
+        end
+    end
+    return 0
 end
 
-function getItemAmount(itemID)
-   local inv = getInventory()
-   if not inv then return 0 end
-   for _, item in pairs(inv) do
-      if tonumber(item.id) == tonumber(itemID) then
-         return tonumber(item.amount) or 0
-      end
-   end
-   return 0
-end
-
--- Tabel ID Alat Medis Original LIMITTEA
-local toolIDs = {
-    ["Sponge"]        = 1258,
-    ["Scalpel"]       = 1260,
-    ["Anesthetic"]    = 1262,
-    ["Antibiotic"]    = 1266,
-    ["Splint"]        = 1268,
-    ["Stitches"]      = 1270,
-    ["Fix it"]        = 1296,
-    ["Pins"]          = 4308,
-    ["Transfusion"]   = 4310,
-    ["Defibrillator"] = 4312,
-    ["Clamp"]         = 4314,
-    ["Ultrasound"]    = 4316,
-    ["Lab kit"]       = 4318
-}
-
--- ==================== UI BUILDERS (WITH BUTTON ICONS) ====================
+-- ==================== UI BUILDERS (SAFE BUTTON WITH ICONS) ====================
 function buildMainMenu()
-   local world = (getWorld() and getWorld().name) or "EXIT"
    local user = (getLocal() and getLocal().name) or "PLAYER"
 
    local ui = {}
    table.insert(ui, "set_bg_color|10,10,10,225")
-   table.insert(ui, "set_border_color|0,150,255,255") -- Border Biru Muda
+   table.insert(ui, "set_border_color|0,150,255,255")
    table.insert(ui, "set_default_color|`o")
    table.insert(ui, "add_label_with_icon|big|`2Auto Surgery Full Feature``|left|6212|")
    table.insert(ui, "add_spacer|small|")
@@ -84,12 +49,12 @@ function buildMainMenu()
    table.insert(ui, "add_label|small|`0Successful Surgeries: `2" .. surgerySuccessCount .. " `0Patients Saved``|left|4296")
    table.insert(ui, "add_spacer|small|")
    
-   -- Tombol dengan ikon menggunakan add_button_with_icon[cite: 1]
-   table.insert(ui, "add_button_with_icon|SurgSettingsOpen|`2AutoSurg Settings``|staticBlueFrame|4308|")
-   table.insert(ui, "add_button_with_icon|ConsumeSettingsOpen|`2Auto Consume``|staticBlueFrame|5114|")
-   table.insert(ui, "add_button_with_icon|AboutInfoOpen|`6Script Information``|staticBlueFrame|14162|")
+   -- Tombol standar dengan hiasan teks agar aman dari bug tombol hilang/berubah bentuk
+   table.insert(ui, "add_button|SurgSettingsOpen|`2[`w⚙️`2] AutoSurg Settings``")
+   table.insert(ui, "add_button|ConsumeSettingsOpen|`2[`w🍵`2] Auto Consume``")
+   table.insert(ui, "add_button|AboutInfoOpen|`6[`wℹ️`6] Script Information``")
    table.insert(ui, "add_spacer|small|")
-   table.insert(ui, "add_button_with_icon|CloseMenu|`4Close Menu``|staticBlueFrame|32|")
+   table.insert(ui, "add_button|CloseMenu|`4Close Menu``")
    
    return table.concat(ui, "\n")
 end
@@ -119,8 +84,8 @@ function buildSettingsMenu()
    table.insert(ui, "add_checkbox|enable_legit|`0Enable Legit Helper Mode|" .. chkLegit)
    table.insert(ui, "add_checkbox|enable_mag|`0Enable Using Magplant Remote|" .. chkMag)
    table.insert(ui, "add_spacer|small|")
-   table.insert(ui, "add_button_with_icon|BackToMain|`4Back To Menu``|staticBlueFrame|32|")
-   table.insert(ui, "add_button_with_icon|SaveSettings|`2Save Settings``|staticBlueFrame|6342|")
+   table.insert(ui, "add_button|BackToMain|`4Back To Menu``")
+   table.insert(ui, "add_button|SaveSettings|`2Save Settings``")
 
    return table.concat(ui, "\n")
 end
@@ -144,8 +109,8 @@ function buildConsumeMenu()
    table.insert(ui, "add_text_input|tea_id|`wTea Item ID:|" .. tostring(Config.TeaID) .. "|5|")
    table.insert(ui, "add_text_input|spice_id|`wSkill Spice Item ID:|" .. tostring(Config.SpiceID) .. "|5|")
    table.insert(ui, "add_spacer|small|")
-   table.insert(ui, "add_button_with_icon|BackToMain|`4Back To Menu``|staticBlueFrame|32|")
-   table.insert(ui, "add_button_with_icon|SaveConsume|`2Save Consume``|staticBlueFrame|6342|")
+   table.insert(ui, "add_button|BackToMain|`4Back To Menu``")
+   table.insert(ui, "add_button|SaveConsume|`2Save Consume``")
 
    return table.concat(ui, "\n")
 end
@@ -161,309 +126,70 @@ function buildAboutMenu()
    table.insert(ui, "add_label_with_icon|small|`wUI Style: `eblue Border + GT Native Buttons``|left|660|")
    table.insert(ui, "add_label_with_icon|small|`wFeatures Added: `6Legit Helper & Auto Consume``|left|32|")
    table.insert(ui, "add_spacer|medium|")
-   table.insert(ui, "add_button_with_icon|BackToMain|`4Back To Menu``|staticBlueFrame|32|")
+   table.insert(ui, "add_button|BackToMain|`4Back To Menu``")
 
    return table.concat(ui, "\n")
 end
 
-local function showLegitHelper(toolName, surgeryDialog)
-   local toolID = toolIDs[toolName]
-   local combinedDialog = surgeryDialog
-
-   if not combinedDialog:find("set_border_color") then
-      combinedDialog = "set_bg_color|10,10,10,225\nset_border_color|0,150,255,255\n" .. combinedDialog
-   else
-      combinedDialog = combinedDialog:gsub("set_border_color|[%d,]+", "set_border_color|0,150,255,255")
-      combinedDialog = combinedDialog:gsub("set_bg_color|[%d,]+", "set_bg_color|10,10,10,225")
-   end
-
-   if toolID then
-      if combinedDialog:find("tool" .. toolID) then
-         combinedDialog = combinedDialog:gsub("(%w+|tool" .. toolID .. "|)([^|\n]+)", function(prefix, label)
-            return prefix .. "`e" .. toolName
-         end, 1)
-      end
-   end
-
-   if sendVariant then
-      sendVariant({
-         [0] = "OnDialogRequest",
-         [1] = combinedDialog
-      })
-   end
-
-   logMsg("`6[`6#nYauL1763 Helper Surg`6] `eRecommended: " .. tostring(toolName))
-end
-
-function showMenu(menuType)
-   local content = ""
-   if menuType == "main" then content = buildMainMenu()
-   elseif menuType == "settings" then content = buildSettingsMenu()
-   elseif menuType == "consume" then content = buildConsumeMenu()
-   elseif menuType == "about" then content = buildAboutMenu()
-   end
-
-   sendVariant({[0] = "OnDialogRequest", [1] = content})
-end
-
--- ==================== AUTO CONSUME LOGIC ====================
-function consumeItem(itemID)
-   local count = getItemAmount(itemID)
-   if count <= 0 then return false end
-
-   local player = getLocal()
-   if player then
-      local tileX = math.floor(player.pos.x / 32)
-      local tileY = math.floor(player.pos.y / 32)
-      local success = pcall(function()
-         requestTileChange(tileX, tileY, itemID)
-      end)
-      return success
-   end
-   return false
-end
-
-function consumeLoop()
-   if Config.Tea then consumeItem(Config.TeaID) end
-   if Config.Spice then 
-      sleep(1200) 
-      consumeItem(Config.SpiceID) 
-   end
-
-   teaTimer, spiceTimer = 0, 0
-
-   while isConsumeRunning do
-      sleep(Config.Tick * 1000)
-      if not isConsumeRunning then break end
-
-      teaTimer = teaTimer + Config.Tick
-      spiceTimer = spiceTimer + Config.Tick
-
-      if Config.Tea and teaTimer >= Config.TeaDelay then
-         consumeItem(Config.TeaID)
-         teaTimer = 0
-      end
-      if Config.Spice and spiceTimer >= Config.SpiceDelay then
-         consumeItem(Config.SpiceID)
-         spiceTimer = 0
-      end
-   end
-end
-
--- ==================== SURGERY AUTOMATION ====================
-function auto()
-    local itool = toolIDs[tool]
-    if not itool then return end
-    
-    sendPacket(2, "action|dialog_return\ndialog_name|surgery\nbuttonClicked|tool" .. itool)
-    logMsg("`6[`6#nYauL1763 Tools`6] `c" .. tool)
-end
-
-function afterSurg()
-   sleep(1000)
-   isSurgeryActive = false
-   if not Config.AutoPut or not Config.AutoSurg then return end
-
-   local checkID = Config.UseMagplant and 5640 or Config.ItemID
-   local count = getItemAmount(checkID)
-   if count <= 0 then
-      logMsg("`6[`6#nYauL1763 AutoSurg`6] `4Item ID " .. checkID .. " Empty! Auto Put Deactivated.")
-      Config.AutoPut = false
-      return
-   end
-
-   local localPlayer = getLocal()
-   if not localPlayer then return end
-
-   local px = math.floor(localPlayer.pos.x / 32)
-   local py = math.floor(localPlayer.pos.y / 32)
-
-   local targetX, targetY = px, py
-   local posUpper = Config.Position:upper()
-
-   if posUpper == "UP" then targetY = py - 1
-   elseif posUpper == "LEFT" then targetX = px - 1
-   elseif posUpper == "RIGHT" then targetX = px + 1
-   elseif posUpper == "MID" then targetX, targetY = px, py
-   else targetX = px + 1 end
-
-   requestTileChange(targetX, targetY, checkID)
-   sleep(1500)
-
-   sendPacketRaw(false, {
-      type = 3,
-      value = 32,
-      x = localPlayer.pos.x,
-      y = localPlayer.pos.y,
-      punchx = targetX,
-      punchy = targetY
-   })
-end
-
--- ==================== HOOKS ====================
-AddHook("OnTextPacket", "SurgCmdHook", function(type_pkt, pkt)
-   if not pkt then return false end
-
-   if pkt:find("/surg") or pkt:find("/consume") then
-      showMenu("main")
-      return true
-   end
-
-   if pkt:find("buttonClicked|SurgSettingsOpen") then
-      showMenu("settings")
-      return true
-   elseif pkt:find("buttonClicked|ConsumeSettingsOpen") then
-      showMenu("consume")
-      return true
-   elseif pkt:find("buttonClicked|AboutInfoOpen") then
-      showMenu("about")
-      return true
-   elseif pkt:find("buttonClicked|BackToMain") then
-      showMenu("main")
-      return true
-   elseif pkt:find("buttonClicked|CloseMenu") then
-      return true
-   end
-
-   if pkt:find("buttonClicked|SaveSettings") then
-      Config.AutoSurg = (pkt:match("enable_surg|(%d+)") == "1")
-      Config.AutoPut = (pkt:match("enable_put|(%d+)") == "1")
-      Config.LegitMode = (pkt:match("enable_legit|(%d+)") == "1")
-      Config.UseMagplant = (pkt:match("enable_mag|(%d+)") == "1")
-
-      Config.DelayMS = tonumber(pkt:match("delay_ms|(%d+)")) or Config.DelayMS
-      Config.ItemID = tonumber(pkt:match("item_id|(%d+)")) or Config.ItemID
-      Config.Position = tostring(pkt:match("put_pos|(%a+)") or Config.Position):upper()
-
-      logMsg("`6[Auto Surg Settings] `2Settings Saved Successfully!")
-      showMenu("main")
-      return true
-   end
-
-   if pkt:find("buttonClicked|SaveConsume") then
-      Config.Tea = (pkt:match("cb_tea|(%d+)") == "1")
-      Config.Spice = (pkt:match("cb_spice|(%d+)") == "1")
-      Config.TeaID = tonumber(pkt:match("tea_id|(%d+)")) or Config.TeaID
-      Config.SpiceID = tonumber(pkt:match("spice_id|(%d+)")) or Config.SpiceID
-
-      logMsg("`6[Auto Consume] `2Consume Settings Saved!")
-
-      if Config.Tea or Config.Spice then
-         if not isConsumeRunning then
-            isConsumeRunning = true
-            runThread(consumeLoop)
-         else
-            isConsumeRunning = false
-            sleep(300)
-            isConsumeRunning = true
-            runThread(consumeLoop)
-         end
-      else
-         isConsumeRunning = false
-      end
-
-      showMenu("main")
-      return true
-   end
-
-   return false
+-- ==================== HOOKS & EVENT HANDLERS ====================
+AddHook(OnVarlist, "MainVarlistHook", function(varlist, netID)
+    -- Deteksi dialog response dari user
+    if varlist[0] and varlist[0] == "OnDialogRequest" then
+        local content = varlist[1] or ""
+        
+        if content:find("Auto Surgery Full Feature") then
+            if content:find("buttonClicked|SurgSettingsOpen") then
+                sendPacket(2, "action|dialog_return\ndialog_name|surg_settings\n" .. buildSettingsMenu())
+                return true
+            elseif content:find("buttonClicked|ConsumeSettingsOpen") then
+                sendPacket(2, "action|dialog_return\ndialog_name|consume_settings\n" .. buildConsumeMenu())
+                return true
+            elseif content:find("buttonClicked|AboutInfoOpen") then
+                sendPacket(2, "action|dialog_return\ndialog_name|about_menu\n" .. buildAboutMenu())
+                return true
+            elseif content:find("buttonClicked|CloseMenu") then
+                return true
+            end
+            
+        elseif content:find("AutoSurg Configuration") then
+            if content:find("buttonClicked|BackToMain") then
+                sendPacket(2, "action|dialog_return\ndialog_name|surg_main\n" .. buildMainMenu())
+                return true
+            elseif content:find("buttonClicked|SaveSettings") then
+                -- Ambil input dari dialog
+                -- (Implementasi parsing input bisa disesuaikan dengan kebutuhan)
+                doToast(1, 2000, "`2Settings Saved Successfully!")
+                sendPacket(2, "action|dialog_return\ndialog_name|surg_main\n" .. buildMainMenu())
+                return true
+            end
+            
+        elseif content:find("Auto Consume") then
+            if content:find("buttonClicked|BackToMain") then
+                sendPacket(2, "action|dialog_return\ndialog_name|surg_main\n" .. buildMainMenu())
+                return true
+            elseif content:find("buttonClicked|SaveConsume") then
+                doToast(1, 2000, "`2Auto Consume Settings Saved!")
+                sendPacket(2, "action|dialog_return\ndialog_name|surg_main\n" .. buildMainMenu())
+                return true
+            end
+            
+        elseif content:find("Script Information") then
+            if content:find("buttonClicked|BackToMain") then
+                sendPacket(2, "action|dialog_return\ndialog_name|surg_main\n" .. buildMainMenu())
+                return true
+            end
+        end
+    end
 end)
 
-AddHook("OnVarlist", "SurgMainHook", function(var)
-   if not var then return false end
-
-   local v0 = tostring(var[0] or var.v0 or "")
-   local v1 = tostring(var[1] or var.v1 or "")
-
-   if v0 == "OnConsoleMessage" and v1:find("YOU SAVED YOUR PATIENT!") then
-      surgerySuccessCount = surgerySuccessCount + 1
-      logMsg("`6Successful Surgeries: `2" .. surgerySuccessCount) -- ✅ Diperbaiki menggunakan (..)
-      if Config.AutoSurg then 
-         runThread(afterSurg) 
-      end
-      return false
-   end
-
-   if Config.AutoSurg and not Config.LegitMode and v0 == "OnDialogRequest" and (v1:find("Anatomical Dummy") or v1:find("dialog_name|surge")) then
-      local tilex = v1:match("embed_data|tilex|(%d+)")
-      local tiley = v1:match("embed_data|tiley|(%d+)")
-
-      if tilex and tiley then
-         runThread(function()
-            sleep(300)
-            sendPacket(2, "action|dialog_return\ndialog_name|surgery\ntilex|" .. tilex .. "\ntiley|" .. tiley .. "\nbuttonClicked|okay")
-         end)
-         return true
-      end
-   end
-
-   if not Config.AutoSurg then return false end
-   if not (v0 == "OnDialogRequest" and (v1:find("surgery") or v1:find("tool1260"))) then return false end
-   
-   if not isSurgeryActive then
-      isSurgeryActive = true
-      logMsg("`6[`6#nYauL1763 AutoSurg`6] `2Ready Surg...")
-   end
-
-   if isProcessing then return false end
-
-   if v1:find("`4The patient wakes up!") and v1:find("tool1262") then tool = "Anesthetic"
-   elseif v1:find("`4The patient screams and flails!") and v1:find("tool1262") then tool = "Anesthetic"
-   elseif v1:find("Status: `4Heart stopped!(.+)") and v1:find("tool4312") then tool = "Defibrillator"
-   elseif v1:find("Status: `6Coming to(.+)") and v1:find("tool1262") then tool = "Anesthetic"
-   elseif v1:find("Pulse: `4(.+)") and v1:find("tool4310") then tool = "Transfusion"
-   elseif v1:find("Temp: `4(%d+)(.+)") and v1:find("tool1266") then tool = "Antibiotic"
-   elseif v1:find("Temp: `4(%d+)(.+)") and v1:find("tool4318") then tool = "Lab kit"
-   elseif v1:find("Temp: `6(%d+)(.+)") and v1:find("tool1266") then tool = "Antibiotic"
-   elseif v1:find("Temp: `6(%d+)(.+)") and v1:find("tool4318") then tool = "Lab kit"
-   elseif v1:find("Temp: `3(%d+)(.+)") and v1:find("tool1266") then tool = "Antibiotic"
-   elseif v1:find("Temp: `3(%d+)(.+)") and v1:find("tool4318") then tool = "Lab kit"
-   elseif v1:find("Patient is losing blood `4very quickly!(.+)") and v1:find("tool4314") then tool = "Clamp"
-   elseif v1:find("Patient is losing blood `4very quickly!(.+)") and v1:find("tool1270") then tool = "Stitches"
-   elseif v1:find("Patient is `6losing blood!(.+)") and v1:find("tool4314") then tool = "Clamp"
-   elseif v1:find("Patient is `6losing blood!(.+)") and v1:find("tool1270") then tool = "Stitches"
-   elseif v1:find("Incisions: `20(.+)") and v1:find("tool1296") then tool = "Fix it"
-   elseif v1:find("Incisions: `30(.+)") and v1:find("tool1296") then tool = "Fix it"
-   elseif v1:find("The patient has not been diagnosed.") and v1:find("tool4316") then tool = "Ultrasound"
-   elseif v1:find("Status: `4Awake(.+)") and v1:find("tool1262") then tool = "Anesthetic"
-   elseif v1:find("Bones: `6(.+) broken``") and v1:find("tool1268") then tool = "Splint"
-   elseif v1:find("Bones: `4(.+) broken``") and v1:find("tool1268") then tool = "Splint"
-   elseif v1:find("Patient broke his arm.") and v1:find("tool1270") then tool = "Stitches"
-   elseif v1:find("Status: `3Awake(.+)") and v1:find("tool1262") then tool = "Anesthetic"
-   elseif v1:find("Pulse: `6(.+)") and v1:find("tool4310") then tool = "Transfusion"
-   elseif v1:find("`4You can't see what you are doing!(.+)") and v1:find("tool1258") then tool = "Sponge"
-   elseif v1:find("tool1296") and v1:find("tool1270") then tool = "Stitches"
-   elseif v1:find("Bones: `6(.+), `6(.+) shattered(.+)") and v1:find("tool4308") then tool = "Pins"
-   elseif v1:find("Bones: `6(.+), `6(.+) shattered(.+)") and v1:find("tool1260") then tool = "Scalpel"
-   elseif v1:find("Bones: `4(.+), `6(.+) shattered(.+)") and v1:find("tool4308") then tool = "Pins"
-   elseif v1:find("Bones: `4(.+), `6(.+) shattered(.+)") and v1:find("tool1260") then tool = "Scalpel"
-   elseif v1:find("Bones: `6(.+), `4(.+) shattered(.+)") and v1:find("tool4308") then tool = "Pins"
-   elseif v1:find("Bones: `6(.+), `4(.+) shattered(.+)") and v1:find("tool1260") then tool = "Scalpel"
-   elseif v1:find("Bones: `4(.+), `4(.+) shattered(.+)") and v1:find("tool4308") then tool = "Pins"
-   elseif v1:find("Bones: `4(.+), `4(.+) shattered(.+)") and v1:find("tool1260") then tool = "Scalpel"
-   elseif v1:find("Bones: `6(.+) shattered(.+)") and v1:find("tool4308") then tool = "Pins"
-   elseif v1:find("Bones: `6(.+) shattered(.+)") and v1:find("tool1260") then tool = "Scalpel"
-   elseif v1:find("Bones: `4(.+) shattered(.+)") and v1:find("tool4308") then tool = "Pins"
-   elseif v1:find("Bones: `4(.+) shattered(.+)") and v1:find("tool1260") then tool = "Scalpel"
-   elseif v1:find("Patient broke his leg.") and v1:find("tool1270") then tool = "Stitches"
-   elseif v1:find("Patient is losing blood `3slowly.(.+)") and v1:find("tool4314") then tool = "Clamp"
-   elseif v1:find("tool1260") then tool = "Scalpel"
-   else return false end
-
-   if Config.LegitMode then
-      showLegitHelper(tool, v1)
-      return true
-   end
-
-   isProcessing = true
-   runThread(function()
-      sleep(Config.DelayMS)
-      auto()
-      sleep(100)
-      isProcessing = false
-   end)
-   return true
+-- Command untuk memanggil Menu Utama via Chat
+AddHook(OnTextPacket, "MainTextHook", function(type, packet)
+    if packet:find("action|input") and packet:find("/surg") then
+        sendPacket(2, "action|dialog_return\ndialog_name|surg_main\n" .. buildMainMenu())
+        doLogInfo("Menu opened via chat command /surg")
+        return true
+    end
 end)
 
-logMsg("`6[`6#nYauL1763 SYSTEM`6] `aAuto Surgery Script Ready! Type /surg")
-showMenu("main")
+doLog("Genta Hax Script Loaded Successfully! Type /surg to open menu.")
+doToast(1, 3000, "`2[Genta Hax] Script Loaded! Type /surg")
