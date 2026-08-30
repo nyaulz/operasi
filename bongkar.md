@@ -3,26 +3,23 @@
 -- Made by #nYauL1763
 -- ==============================================================================
 
--- Konfigurasi Awal Script
 Config = {
     DelayMS = 250,
-    ItemID = 5640, -- Contoh Item ID (Dummy/Surgical Tool)
+    ItemID = 5640,
     Position = "UP",
     AutoSurg = false,
     AutoPut = false,
     LegitMode = true,
     UseMagplant = false,
-    -- Auto Consume Config
     Tea = false,
     Spice = false,
-    TeaID = 7188,   -- ID untuk Tea
-    SpiceID = 7190  -- ID untuk Skill Spice
+    TeaID = 7188,
+    SpiceID = 7190
 }
 
 surgerySuccessCount = 0
 isConsumeRunning = false
 
--- ==================== FUNGSI HELPER STOK ITEM ====================
 function getItemAmount(targetID)
     local inv = getInventory()
     if not inv then return 0 end
@@ -34,7 +31,7 @@ function getItemAmount(targetID)
     return 0
 end
 
--- ==================== UI BUILDERS (SAFE BUTTON WITH ICONS) ====================
+-- ==================== UI BUILDERS ====================
 function buildMainMenu()
    local user = (getLocal() and getLocal().name) or "PLAYER"
 
@@ -49,7 +46,6 @@ function buildMainMenu()
    table.insert(ui, "add_label|small|`0Successful Surgeries: `2" .. surgerySuccessCount .. " `0Patients Saved``|left|4296")
    table.insert(ui, "add_spacer|small|")
    
-   -- Tombol standar dengan hiasan teks agar aman dari bug tombol hilang/berubah bentuk
    table.insert(ui, "add_button|SurgSettingsOpen|`2[`w⚙️`2] AutoSurg Settings``")
    table.insert(ui, "add_button|ConsumeSettingsOpen|`2[`w🍵`2] Auto Consume``")
    table.insert(ui, "add_button|AboutInfoOpen|`6[`wℹ️`6] Script Information``")
@@ -131,9 +127,9 @@ function buildAboutMenu()
    return table.concat(ui, "\n")
 end
 
--- ==================== HOOKS & EVENT HANDLERS ====================
-AddHook(OnVarlist, "MainVarlistHook", function(varlist, netID)
-    -- Deteksi dialog response dari user
+-- ==================== SAFE HOOKS REGISTRATION ====================
+-- Pastikan label string ("NyxVarlistHook", "NyxTextHook") tidak kosong agar tidak error 'fname' nil.
+AddHook(OnVarlist, "NyxVarlistHook", function(varlist, netID)
     if varlist[0] and varlist[0] == "OnDialogRequest" then
         local content = varlist[1] or ""
         
@@ -156,8 +152,6 @@ AddHook(OnVarlist, "MainVarlistHook", function(varlist, netID)
                 sendPacket(2, "action|dialog_return\ndialog_name|surg_main\n" .. buildMainMenu())
                 return true
             elseif content:find("buttonClicked|SaveSettings") then
-                -- Ambil input dari dialog
-                -- (Implementasi parsing input bisa disesuaikan dengan kebutuhan)
                 doToast(1, 2000, "`2Settings Saved Successfully!")
                 sendPacket(2, "action|dialog_return\ndialog_name|surg_main\n" .. buildMainMenu())
                 return true
@@ -182,9 +176,8 @@ AddHook(OnVarlist, "MainVarlistHook", function(varlist, netID)
     end
 end)
 
--- Command untuk memanggil Menu Utama via Chat
-AddHook(OnTextPacket, "MainTextHook", function(type, packet)
-    if packet:find("action|input") and packet:find("/surg") then
+AddHook(OnTextPacket, "NyxTextHook", function(type, packet)
+    if packet and packet:find("action|input") and packet:find("/surg") then
         sendPacket(2, "action|dialog_return\ndialog_name|surg_main\n" .. buildMainMenu())
         doLogInfo("Menu opened via chat command /surg")
         return true
