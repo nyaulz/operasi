@@ -84,7 +84,7 @@ function buildMainMenu()
    table.insert(ui, "add_label|small|`0Successful Surgeries: `2" .. surgerySuccessCount .. " `0Patients Saved``|left|4296")
    table.insert(ui, "add_spacer|small|")
    
-   -- Tombol dengan ikon menggunakan add_button_with_icon
+   -- Tombol dengan ikon menggunakan add_button_with_icon[cite: 1]
    table.insert(ui, "add_button_with_icon|SurgSettingsOpen|`2AutoSurg Settings``|staticBlueFrame|4308|")
    table.insert(ui, "add_button_with_icon|ConsumeSettingsOpen|`2Auto Consume``|staticBlueFrame|5114|")
    table.insert(ui, "add_button_with_icon|AboutInfoOpen|`6Script Information``|staticBlueFrame|14162|")
@@ -377,7 +377,7 @@ AddHook("OnVarlist", "SurgMainHook", function(var)
 
    if v0 == "OnConsoleMessage" and v1:find("YOU SAVED YOUR PATIENT!") then
       surgerySuccessCount = surgerySuccessCount + 1
-      logMsg("`6Successful Surgeries: `2" + surgerySuccessCount)
+      logMsg("`6Successful Surgeries: `2" .. surgerySuccessCount) -- ✅ Diperbaiki menggunakan (..)
       if Config.AutoSurg then 
          runThread(afterSurg) 
       end
@@ -391,7 +391,7 @@ AddHook("OnVarlist", "SurgMainHook", function(var)
       if tilex and tiley then
          runThread(function()
             sleep(300)
-            sendPacket(2, "action|dialog_return\ndialog_name|surge\ntilex|" .. tilex .. "\ntiley|" .. tiley .. "\nbuttonClicked|okay")
+            sendPacket(2, "action|dialog_return\ndialog_name|surgery\ntilex|" .. tilex .. "\ntiley|" .. tiley .. "\nbuttonClicked|okay")
          end)
          return true
       end
